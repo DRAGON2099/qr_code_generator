@@ -60,7 +60,7 @@
             background-color: #f2f2f2;
         }
         .row-spacing {
-            height: 20px;
+            height: 40px; /* Increased spacing between grouped rows */
         }
         @media print {
             body * {
@@ -114,33 +114,33 @@
                     
                     let extractedValues = [];
                     let tableHTML = "";
-                    let firstNonEmptyFound = false;
-                    let maxRowsPerLine = 4; // Display exactly 4 rows per line
                     let rows = [];
-                    let currentRow = [];
                     
-                    for (let i = 2; i < 14; i++) {
-                        let field = jsonData[i] && jsonData[i][0] ? jsonData[i][0].trim() : "";
-                        let value = jsonData[i] && jsonData[i][1] ? jsonData[i][1].toString().trim() : "";
-                        
-                        if (!firstNonEmptyFound && value !== "") {
-                            firstNonEmptyFound = true;
+                    const rowGroups = [
+                        ["HR Coil No.", "Batch No", "Grade", "Heat No."],
+                        ["Only Thickness", "Finish", "Edge Condition", "Quality"],
+                        ["QA Inspector", "Work Center", "Sample Location", "Remarks"]
+                    ];
+                    
+                    rowGroups.forEach((group, index) => {
+                        let row = "<tr>";
+                        group.forEach(field => {
+                            let value = "";
+                            for (let i = 2; i < 14; i++) {
+                                if (jsonData[i] && jsonData[i][0] && jsonData[i][0].trim() === field) {
+                                    value = jsonData[i][1] ? jsonData[i][1].toString().trim() : "";
+                                    extractedValues.push(value);
+                                    break;
+                                }
+                            }
+                            row += `<th>${field}</th><td>${value}</td>`;
+                        });
+                        row += "</tr>";
+                        rows.push(row);
+                        if (index < rowGroups.length - 1) {
+                            rows.push(`<tr class='row-spacing'></tr>`); // Add spacing between row groups
                         }
-                        
-                        if (firstNonEmptyFound) {
-                            extractedValues.push(value);
-                        }
-                        
-                        currentRow.push(`<th>${field}</th><td>${value}</td>`);
-                        if (currentRow.length / 2 >= maxRowsPerLine) {
-                            rows.push(`<tr>${currentRow.join('')}</tr>`);
-                            rows.push(`<tr class='row-spacing'></tr>`); // Space after 4 rows
-                            currentRow = [];
-                        }
-                    }
-                    if (currentRow.length > 0) {
-                        rows.push(`<tr>${currentRow.join('')}</tr>`);
-                    }
+                    });
                     
                     tableHTML = rows.join('');
                     dataTable.innerHTML = tableHTML;
