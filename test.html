@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QR Code Label Print</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background-color: #f4f4f4;
+        padding: 20px;
+      }
+
+      .label-container {
+        width: 80%;
+        max-width: 600px;
+        background: white;
+        padding: 20px;
+        border: 2px solid black;
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+        margin: auto;
+        text-align: left;
+      }
+
+      .logo {
+        text-align: center;
+      }
+
+      .logo img {
+        width: 250px;
+        height: auto;
+      }
+
+      h1 {
+        font-size: 20px;
+        text-align: center;
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+      }
+
+      .data-table td {
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .data-table td:first-child {
+        font-weight: bold;
+        width: 40%;
+      }
+
+      #qrcode {
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .print-button {
+        display: block;
+        margin: 20px auto;
+        padding: 10px 20px;
+        font-size: 16px;
+        background: black;
+        color: white;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+      }
+
+      @media print {
+        .print-button {
+          display: none;
+        }
+        body {
+          background: white;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="label-container">
+      <div class="logo">
+        <img src="static/jsl_logo.png" alt="Jindal Stainless Limited" />
+        <h1>Jindal Stainless Limited</h1>
+      </div>
+
+      <table class="data-table" id="dataTable">
+        <!-- Data fields will be inserted here dynamically -->
+      </table>
+
+      <div id="qrcode"></div>
+
+      <button class="print-button" onclick="window.print()">Print</button>
+    </div>
+
+    <script>
+      function generateLabel() {
+        let sheetData = [
+          ["HR Coil No.", "12345"],
+          ["Batch No.", "ABC"],
+          ["Grade", "XYZ"],
+          ["Heat No.", "Heat456"],
+          ["Only Thickness", "Thickness12"],
+          ["Finish", "Finish1"],
+          ["Edge Condition", "EdgeSmooth"],
+          ["Quality", "QualityA"],
+          ["QA Inspector", "InspectorX"],
+          ["Work Center", "WorkCenter5"],
+          ["Sample Location", "SampleLocY"],
+          ["Remarks", "TestRemarks"]
+        ];
+
+        // Populate Data Table
+        let table = document.getElementById("dataTable");
+        table.innerHTML = "";
+        let qrData = [];
+
+        sheetData.forEach((row) => {
+          let tr = document.createElement("tr");
+          let td1 = document.createElement("td");
+          let td2 = document.createElement("td");
+
+          td1.textContent = row[0];
+          td2.textContent = row[1];
+
+          tr.appendChild(td1);
+          tr.appendChild(td2);
+          table.appendChild(tr);
+
+          qrData.push(row[1]); // Collect values for QR code
+        });
+
+        // Generate QR Code
+        document.getElementById("qrcode").innerHTML = "";
+        let qrText = qrData.join("#");
+        new QRCode(document.getElementById("qrcode"), {
+          text: qrText,
+          width: 150,
+          height: 150
+        });
+      }
+
+      // Generate label on page load
+      generateLabel();
+    </script>
+  </body>
+</html>
