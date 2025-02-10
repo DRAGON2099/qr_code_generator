@@ -1,170 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Excel to QR Code</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f4f4f4;
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f4f4f4;
+      }
+      .container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        width: 794px; /* A4 width in pixels at 96dpi */
+        max-height: 1123px; /* A4 height in pixels at 96dpi */
+        overflow: auto;
+      }
+      input[type="file"] {
+        margin: 10px 0;
+      }
+      button {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 5px;
+      }
+      button:hover {
+        background-color: #218838;
+      }
+      #qr-code {
+        margin-top: 20px;
+      }
+      #data-table {
+        margin-top: 20px;
+        text-align: left;
+        width: 100%;
+        border-collapse: collapse;
+      }
+      #data-table th,
+      #data-table td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: center;
+        word-wrap: break-word;
+      }
+      #data-table th {
+        background-color: #f2f2f2;
+      }
+      .row-spacing {
+        height: 40px; /* Increased spacing between grouped rows */
+      }
+      @media print {
+        body * {
+          visibility: hidden;
         }
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            width: 794px; /* A4 width in pixels at 96dpi */
-            max-height: 1123px; /* A4 height in pixels at 96dpi */
-            overflow: auto;
+        .print-area,
+        .print-area * {
+          visibility: visible;
         }
-        input[type="file"] {
-            margin: 10px 0;
+        .print-area {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
         }
-        button {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin: 5px;
-        }
-        button:hover {
-            background-color: #218838;
-        }
-        #qr-code {
-            margin-top: 20px;
-        }
-        #data-table {
-            margin-top: 20px;
-            text-align: left;
-            width: 100%;
-            border-collapse: collapse;
-        }
-        #data-table th, #data-table td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: center;
-            word-wrap: break-word;
-        }
-        #data-table th {
-            background-color: #f2f2f2;
-        }
-        .row-spacing {
-            height: 40px; /* Increased spacing between grouped rows */
-        }
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            .print-area, .print-area * {
-                visibility: visible;
-            }
-            .print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container print-area">
-        <h2>Upload Excel File & Generate QR Code</h2>
-        <input type="file" id="excelFile" accept=".xlsx, .xls">
-        <br>
-        <button id="generateQR">Generate QR Code</button>
-        <button id="printPage">Print</button>
-        <div id="qr-code"></div>
-        <table id="data-table"></table>
+      <a href="sample_format.html"
+        ><h1>Click here to view Format of Data/Excel accepted</h1></a
+      >
+      <a href="input_data_excel_page copy.html"
+        ><h1>Click here to input data manually via Excel</h1></a
+      >
+      <h2>Upload Excel File & Generate QR Code</h2>
+      <input type="file" id="excelFile" accept=".xlsx, .xls" />
+      <br />
+      <button id="generateQR">Generate QR Code</button>
+      <button id="printPage">Print</button>
+      <div id="qr-code"></div>
+      <table id="data-table"></table>
     </div>
-    
+
     <script>
-        document.getElementById('generateQR').addEventListener('click', function() {
-            const fileInput = document.getElementById('excelFile');
-            const qrCodeDiv = document.getElementById('qr-code');
-            const dataTable = document.getElementById('data-table');
-            qrCodeDiv.innerHTML = ""; // Clear previous QR code
-            dataTable.innerHTML = ""; // Clear previous table data
-            
-            if (fileInput.files.length === 0) {
-                alert("Please upload an Excel file first.");
-                return;
-            }
-            
-            const file = fileInput.files[0];
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-                    
-                    let extractedValues = [];
-                    let tableHTML = "";
-                    let rows = [];
-                    
-                    const rowGroups = [
-                        ["HR Coil No.", "Batch No", "Grade", "Heat No."],
-                        ["Only Thickness", "Finish", "Edge Condition", "Quality"],
-                        ["QA Inspector", "Work Center", "Sample Location", "Remarks"]
-                    ];
-                    
-                    rowGroups.forEach((group, index) => {
-                        let row = "<tr>";
-                        group.forEach(field => {
-                            let value = "";
-                            for (let i = 2; i < 14; i++) {
-                                if (jsonData[i] && jsonData[i][0] && jsonData[i][0].trim() === field) {
-                                    value = jsonData[i][1] ? jsonData[i][1].toString().trim() : "";
-                                    extractedValues.push(value);
-                                    break;
-                                }
-                            }
-                            row += `<th>${field}</th><td>${value}</td>`;
-                        });
-                        row += "</tr>";
-                        rows.push(row);
-                        if (index < rowGroups.length - 1) {
-                            rows.push(`<tr class='row-spacing'></tr>`); // Add spacing between row groups
-                        }
-                    });
-                    
-                    tableHTML = rows.join('');
-                    dataTable.innerHTML = tableHTML;
-                    
-                    // Ensure missing values are preserved as empty placeholders
-                    const qrData = "#" + extractedValues.map(val => val === "" ? "" : val).join('#');
-                    qrCodeDiv.innerHTML = ""; // Clear previous QR Code
-                    new QRCode(qrCodeDiv, {
-                        text: qrData,
-                        width: 200,
-                        height: 200
-                    });
-                } catch (error) {
-                    console.error("Error processing file:", error);
-                    alert("Error processing file. Please check the format and try again.");
+      document
+        .getElementById("generateQR")
+        .addEventListener("click", function () {
+          const fileInput = document.getElementById("excelFile");
+          const qrCodeDiv = document.getElementById("qr-code");
+          const dataTable = document.getElementById("data-table");
+          qrCodeDiv.innerHTML = ""; // Clear previous QR code
+          dataTable.innerHTML = ""; // Clear previous table data
+
+          if (fileInput.files.length === 0) {
+            alert("Please upload an Excel file first.");
+            return;
+          }
+
+          const file = fileInput.files[0];
+          const reader = new FileReader();
+
+          reader.onload = function (e) {
+            try {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: "array" });
+              const sheet = workbook.Sheets[workbook.SheetNames[0]];
+              const jsonData = XLSX.utils.sheet_to_json(sheet, {
+                header: 1,
+                defval: ""
+              });
+
+              let extractedValues = [];
+              let tableHTML = "";
+              let firstNonEmptyFound = false;
+              let maxRowsPerLine = 4; // Display exactly 4 rows per line
+              let rows = [];
+              let currentRow = [];
+
+              for (let i = 2; i < 14; i++) {
+                let field =
+                  jsonData[i] && jsonData[i][0] ? jsonData[i][0].trim() : "";
+                let value =
+                  jsonData[i] && jsonData[i][1]
+                    ? jsonData[i][1].toString().trim()
+                    : "";
+
+                if (!firstNonEmptyFound && value !== "") {
+                  firstNonEmptyFound = true;
                 }
-            };
-            
-            reader.readAsArrayBuffer(file);
+
+                if (firstNonEmptyFound) {
+                  extractedValues.push(value);
+                }
+
+                currentRow.push(`<th>${field}</th><td>${value}</td>`);
+                if (currentRow.length / 2 >= maxRowsPerLine) {
+                  rows.push(`<tr>${currentRow.join("")}</tr>`);
+                  rows.push(`<tr class='row-spacing'></tr>`); // Increased space after 4 rows
+                  currentRow = [];
+                }
+              }
+              if (currentRow.length > 0) {
+                rows.push(`<tr>${currentRow.join("")}</tr>`);
+              }
+
+              tableHTML = rows.join("");
+              dataTable.innerHTML = tableHTML;
+
+              // Ensure missing values are preserved as empty placeholders
+              const qrData =
+                "#" +
+                extractedValues.map((val) => (val === "" ? "" : val)).join("#");
+              qrCodeDiv.innerHTML = ""; // Clear previous QR Code
+              new QRCode(qrCodeDiv, {
+                text: qrData,
+                width: 200,
+                height: 200
+              });
+            } catch (error) {
+              console.error("Error processing file:", error);
+              alert(
+                "Error processing file. Please check the format and try again."
+              );
+            }
+          };
+
+          reader.readAsArrayBuffer(file);
         });
-        
-        document.getElementById('printPage').addEventListener('click', function() {
-            window.print();
+
+      document
+        .getElementById("printPage")
+        .addEventListener("click", function () {
+          window.print();
         });
     </script>
-</body>
+  </body>
 </html>
