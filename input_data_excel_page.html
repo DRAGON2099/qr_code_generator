@@ -92,10 +92,10 @@
             padding: 5px;
         }
 
-        /* Ensures QR code is exactly 147px x 147px */
+        /* Ensures QR code is exactly 1000px x 1000px */
         #qrcode img {
-            width: 147px !important;
-            height: 147px !important;
+            width: 1000px !important;
+            height: 1000px !important;
         }
 
         /* Print button styling */
@@ -244,8 +244,8 @@
             document.getElementById("qrcode").innerHTML = "";
             new QRCode(document.getElementById("qrcode"), {
                 text: qrText,
-                width: 147,
-                height: 147,
+                width: 1000,
+                height: 1000,
                 correctLevel: QRCode.CorrectLevel.Q
             });
         }
