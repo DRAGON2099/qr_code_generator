@@ -4,12 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QR Code Label Print</title>
+
+    <!-- Import Handsontable for table input -->
     <script src="https://cdn.jsdelivr.net/npm/handsontable@12.1.2/dist/handsontable.full.min.js"></script>
+
+    <!-- Import QR Code generator -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Import Handsontable CSS -->
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/handsontable@12.1.2/dist/handsontable.full.min.css"
     />
+
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -36,43 +43,68 @@
       }
 
       .label-container {
-        width: 4cm;
-        height: 4cm;
+        width: 6cm;
+        height: 6cm;
         background: white;
-        padding: 2px;
+        padding: 5px;
         border: 1px solid black;
         box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
         margin: auto;
         text-align: left;
         display: flex;
-        flex-direction: row;
         align-items: center;
         justify-content: space-between;
       }
 
       .data-table {
-        width: 60%;
-        font-size: 5px;
-        line-height: 1;
-        text-align: left;
-        margin-left: 2px;
+        width: 50%;
+        font-size: 8px;
+        line-height: 1.2;
+        margin-left: 1px;
+        border-collapse: collapse;
       }
 
-      .data-table td {
-        padding: 1px;
+      .data-table-container {
+        margin-right: 5px;
       }
 
-      .data-table td:first-child {
+      .data-table td,
+      .data-table th {
+        padding: 2px;
+        border: 1px solid black;
+      }
+
+      .data-table th {
+        background-color: #f0f0f0;
         font-weight: bold;
-        width: 40%;
       }
 
-      #qrcode {
-        width: 35%;
-        margin-left: -10px;
+      /* QR Code container with reduced padding (10px) */
+      #qrcode-container {
+        width: 130px; /* QR Code 110px + 10px padding on each side */
+        height: 130px; /* QR Code 110px + 10px padding on each side */
         display: flex;
         justify-content: center;
         align-items: center;
+        background-color: white;
+        padding: 10px;
+        border: 2px solid black;
+        box-sizing: border-box;
+      }
+
+      /* Adjust QR Code size */
+      #qrcode img {
+        width: 110px !important;
+        height: 110px !important;
+      }
+
+      /* Success message */
+      #qr-status {
+        font-size: 14px;
+        font-weight: bold;
+        color: green;
+        margin-top: 10px;
+        display: none;
       }
 
       .print-button {
@@ -85,6 +117,7 @@
         border: none;
         cursor: pointer;
         border-radius: 4px;
+        display: none; /* Initially hidden until QR is verified */
       }
 
       .print-button:hover {
@@ -94,7 +127,8 @@
       @media print {
         .print-button,
         .handsontable-container,
-        h2 {
+        h2,
+        #qr-status {
           display: none;
         }
         body {
@@ -105,11 +139,11 @@
           padding: 5px;
         }
         .label-container {
-          width: 4cm;
-          height: 4cm;
+          width: 6cm;
+          height: 6cm;
           border: none;
           box-shadow: none;
-          font-size: 4px;
+          font-size: 6px;
         }
       }
     </style>
@@ -123,10 +157,15 @@
 
       <h2>QR Code Label</h2>
       <div class="label-container">
-        <table class="data-table" id="dataTable"></table>
-        <div id="qrcode"></div>
+        <div class="data-table-container">
+          <table class="data-table" id="dataTable"></table>
+        </div>
+        <div id="qrcode-container">
+          <div id="qrcode"></div>
+        </div>
       </div>
 
+      <p id="qr-status">QR Code Generated Successfully ✅</p>
       <button class="print-button" onclick="printAndReload()">
         Print Label
       </button>
@@ -171,17 +210,21 @@
       function generateLabelFromHandsontable() {
         let sheetData = hot.getData();
         let dataPairs = [];
-        let qrValues = Array(FIELD_ORDER.length).fill(""); // Ensures all fields exist and are empty by default
+        let qrValues = Array(FIELD_ORDER.length).fill("");
 
         for (let i = 0; i < FIELD_ORDER.length; i++) {
           let fieldLabel = sheetData[i][0]?.trim();
-          let fieldValue = sheetData[i][1]?.trim() || ""; // Maintain empty values for QR
+          let fieldValue = sheetData[i][1]?.trim() || "";
 
           if (fieldLabel) {
-            dataPairs.push([fieldLabel, fieldValue || "-"]);
+            dataPairs.push([fieldLabel, fieldValue]);
           }
 
-          qrValues[i] = fieldValue; // Maintain order and empty values
+          const MAX_CHAR_LIMIT = 30;
+          qrValues[i] =
+            fieldValue.length > MAX_CHAR_LIMIT
+              ? fieldValue.substring(0, MAX_CHAR_LIMIT)
+              : fieldValue;
         }
 
         let table = document.getElementById("dataTable");
@@ -199,23 +242,39 @@
           table.appendChild(tr);
         });
 
-        // ✅ Ensure QR code format is strict with exactly 11 hash separators
-        let qrText = qrValues.join("#");
+        let qrText = qrValues.map((val) => val.trim()).join("#");
 
-        document.getElementById("qrcode").innerHTML = "";
-        new QRCode(document.getElementById("qrcode"), {
-          text: qrText,
-          width: 50,
-          height: 50,
-          correctLevel: QRCode.CorrectLevel.H
-        });
+        function generateValidQRCode() {
+          document.getElementById("qrcode").innerHTML = "";
+          let qr = new QRCode(document.getElementById("qrcode"), {
+            text: qrText,
+            width: 110,
+            height: 110,
+            correctLevel: QRCode.CorrectLevel.Q
+          });
+
+          setTimeout(() => {
+            let qrImage = document.querySelector("#qrcode img");
+            if (qrImage) {
+              qrImage.style.width = "110px";
+              qrImage.style.height = "110px";
+              document.getElementById("qr-status").style.display = "block";
+              document.querySelector(".print-button").style.display = "block";
+              console.log("QR Code Generated Successfully.");
+            } else {
+              console.log("Regenerating QR Code...");
+              generateValidQRCode();
+            }
+          }, 500);
+        }
+
+        generateValidQRCode();
       }
 
       function printAndReload() {
         window.print();
       }
 
-      // ✅ Ensures page reloads **after** printing is completed
       window.onafterprint = function () {
         location.reload();
       };
